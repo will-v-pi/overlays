@@ -46,7 +46,8 @@ pico_enable_stdio_usb(overlays 0)
 
 # Add the standard library to the build
 target_link_libraries(overlays
-        pico_stdlib)
+        pico_stdlib
+        pico_sha256)
 
 # Add the standard include files to the build
 target_include_directories(overlays PRIVATE

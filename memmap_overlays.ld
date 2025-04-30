@@ -71,7 +71,7 @@ SECTIONS
         *(.dtors)
 
         *(.eh_frame*)
-    } > RAM
+    } > RAM AT > FLASH
 
     .rodata : {
         . = ALIGN(4);
@@ -80,18 +80,18 @@ SECTIONS
         . = ALIGN(4);
         *(SORT_BY_ALIGNMENT(SORT_BY_NAME(.flashdata*)))
         . = ALIGN(4);
-    } > RAM
+    } > RAM AT > FLASH
 
     .ARM.extab :
     {
         *(.ARM.extab* .gnu.linkonce.armextab.*)
-    } > RAM
+    } > RAM AT > FLASH
 
     __exidx_start = .;
     .ARM.exidx :
     {
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-    } > RAM
+    } > RAM AT > FLASH
     __exidx_end = .;
 
     /* Machine inspectable binary information */
@@ -101,7 +101,7 @@ SECTIONS
     {
         KEEP(*(.binary_info.keep.*))
         *(.binary_info.*)
-    } > RAM
+    } > RAM AT > FLASH
     __binary_info_end = .;
     . = ALIGN(4);
 
@@ -143,14 +143,14 @@ SECTIONS
 
         *(.jcr)
         . = ALIGN(4);
-   } > RAM
+   } > RAM AT > FLASH
 
     .tdata : {
         . = ALIGN(4);
 		*(.tdata .tdata.* .gnu.linkonce.td.*)
         /* All data end */
         __tdata_end = .;
-    } > RAM
+    } > RAM AT > FLASH
     PROVIDE(__data_end__ = .);
 
     .uninitialized_data (NOLOAD): {
@@ -184,7 +184,7 @@ SECTIONS
 
     PROVIDE(__overlays_start = .);
 
-    OVERLAY __overlays_start + 4k : NOCROSSREFS AT (__overlays_start) {
+    OVERLAY : NOCROSSREFS {
         .blink_one {
             KEEP (*(.blink_one))
             . = ALIGN(4);
@@ -193,7 +193,7 @@ SECTIONS
             KEEP (*(.blink_two))
             . = ALIGN(4);
         }
-    } > RAM
+    } > RAM AT > FLASH
 
     PROVIDE(__overlays_end = .);
 
