@@ -22,6 +22,16 @@ void __overlay_func(blink_two, blink_two)(uint32_t ms) {
     }
 }
 
+#define blink_three(...) __call_overlay_func(blink_three, __VA_ARGS__)
+void __overlay_func(blink_three, blink_three)(uint32_t ms) {
+    for (int i=0; i < 3; i++) {
+        gpio_put(PICO_DEFAULT_LED_PIN, true);
+        sleep_ms(ms);
+        gpio_put(PICO_DEFAULT_LED_PIN, false);
+        sleep_ms(ms);
+    }
+}
+
 
 int main()
 {
@@ -39,6 +49,8 @@ int main()
         blink_one(1000);
         printf("blink_two\n");
         blink_two(500);
+        printf("blink_three\n");
+        blink_three(250);
         printf("blink_one slower\n");
         blink_one(2000);
     }

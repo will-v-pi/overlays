@@ -63,6 +63,7 @@ pico_package_uf2_output(overlays 0x10000000)
 
 add_overlay(overlays blink_one)
 add_overlay(overlays blink_two)
+add_overlay(overlays blink_three)
 
 postprocess_overlays(overlays)
 
