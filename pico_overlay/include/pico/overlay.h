@@ -7,7 +7,7 @@
 
 #include "all_overlays.h"
 
-#define __call_overlay_func(name, ...) if (overlay_load(__load_start_overlay_##name, __load_stop_overlay_##name, name##_hash)) { name##_internal(__VA_ARGS__); } else { printf("overlay failed to load\n"); }
+#define __call_overlay_func(name, overlay, ...) if (overlay_load(__load_start_overlay_##overlay, __load_stop_overlay_##overlay, overlay##_hash)) { name##_internal(__VA_ARGS__); } else { printf("overlay failed to load\n"); }
 #define __overlay_func(name, overlay) __noinline __attribute__((section("." __STRING(overlay) "." __STRING(name)))) name##_internal
 
 extern uint8_t __overlays_start[];

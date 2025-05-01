@@ -11,7 +11,8 @@ pico_mirrored_target_link_libraries(pico_overlay INTERFACE
         pico_binary_info
 )
 
-
+# needed by function below
+set(PICO_OVERLAY_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
 
 function(add_overlay TARGET NAME)
     set_property(TARGET ${TARGET} PROPERTY OVERLAYS ${NAME} APPEND)
@@ -22,7 +23,7 @@ function(postprocess_overlays TARGET)
     get_property(overlays TARGET ${TARGET} PROPERTY OVERLAYS)
     find_package (Python3 REQUIRED COMPONENTS Interpreter)
     add_custom_command(TARGET ${TARGET} POST_BUILD
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/process_hashes.py $<TARGET_FILE:${TARGET}>
+        COMMAND ${Python3_EXECUTABLE} ${PICO_OVERLAY_DIR}/process_hashes.py $<TARGET_FILE:${TARGET}>
         VERBATIM)
 
     # create all_overlays.h

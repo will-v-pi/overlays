@@ -49,7 +49,9 @@ pico_enable_stdio_usb(overlays 0)
 # Add the standard library to the build
 target_link_libraries(overlays
         pico_stdlib
-        pico_overlay)
+        pico_overlay
+        hardware_pwm
+        hardware_irq)
 
 # Add the standard include files to the build
 target_include_directories(overlays PRIVATE
@@ -61,9 +63,8 @@ pico_set_linker_script(overlays ${CMAKE_CURRENT_LIST_DIR}/memmap_overlays.ld)
 pico_hash_binary(overlays)
 pico_package_uf2_output(overlays 0x10000000)
 
-add_overlay(overlays blink_one)
-add_overlay(overlays blink_two)
-add_overlay(overlays blink_three)
+add_overlay(overlays blinking)
+add_overlay(overlays fading)
 
 postprocess_overlays(overlays)
 

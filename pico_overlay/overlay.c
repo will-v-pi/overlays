@@ -8,11 +8,10 @@
 bool overlay_load(uint8_t* start, uint8_t* stop, char* hash) {
     static uint8_t* current_start = NULL;
     if (current_start == start) {
-        printf("overlay already loaded\n");
         return true;
     }
     current_start = start;
-    printf("loading overlay from %p into %p\n", start, __overlays_start);
+    printf("loading overlay from %p->%p into %p->%p\n", start, stop, __overlays_start, __overlays_end);
     memcpy(__overlays_start, start, stop - start);
     memset(__overlays_start + (stop - start), 0, __overlays_end - __overlays_start - (stop - start));
 
