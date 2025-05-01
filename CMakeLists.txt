@@ -33,6 +33,8 @@ project(overlays C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+add_subdirectory(pico_overlay)
+
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(overlays overlays.c )
@@ -47,7 +49,7 @@ pico_enable_stdio_usb(overlays 0)
 # Add the standard library to the build
 target_link_libraries(overlays
         pico_stdlib
-        pico_sha256)
+        pico_overlay)
 
 # Add the standard include files to the build
 target_include_directories(overlays PRIVATE
@@ -58,5 +60,10 @@ pico_set_binary_type(overlays no_flash)
 pico_set_linker_script(overlays ${CMAKE_CURRENT_LIST_DIR}/memmap_overlays.ld)
 pico_hash_binary(overlays)
 pico_package_uf2_output(overlays 0x10000000)
+
+add_overlay(overlays blink_one)
+add_overlay(overlays blink_two)
+
+postprocess_overlays(overlays)
 
 pico_add_extra_outputs(overlays)

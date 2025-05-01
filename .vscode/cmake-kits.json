@@ -9,7 +9,7 @@
             "PATH": "${command:raspberry-pi-pico.getEnvPath};${env:PATH}"
         },
         "cmakeSettings": {
-            "Python3_EXECUTABLE": "${command:raspberry-pi-pico.getPythonPath}"
+            "Python3_EXECUTABLE": "${workspaceFolder}/env/Scripts/python.exe"
         }
     }
 ]

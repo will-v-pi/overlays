@@ -184,16 +184,7 @@ SECTIONS
 
     PROVIDE(__overlays_start = .);
 
-    OVERLAY : NOCROSSREFS {
-        .blink_one {
-            KEEP (*(.blink_one))
-            . = ALIGN(4);
-        }
-        .blink_two {
-            KEEP (*(.blink_two))
-            . = ALIGN(4);
-        }
-    } > RAM AT > FLASH
+    INCLUDE "pico_overlay.ld"
 
     PROVIDE(__overlays_end = .);
 
