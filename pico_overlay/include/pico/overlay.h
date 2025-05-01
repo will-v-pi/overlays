@@ -7,8 +7,33 @@
 
 #include "all_overlays.h"
 
-#define __call_overlay_func(name, overlay, ...) if (overlay_load(__load_start_overlay_##overlay, __load_stop_overlay_##overlay, overlay##_hash)) { name##_internal(__VA_ARGS__); } else { printf("overlay failed to load\n"); }
+// Usual usage:
+// #define my_function(...) __call_overlay_func(my_function, my_overlay, __VA_ARGS__)
+// void __overlay_func(my_function, my_overlay)(uint arg1, ...) {
+//     ...
+// }
+#define __call_overlay_func(name, overlay, ...) \
+    if (overlay_load(__load_start_overlay_##overlay, __load_stop_overlay_##overlay, overlay##_hash)) { \
+        name##_internal(__VA_ARGS__); \
+    } else { \
+        printf("overlay failed to load\n"); \
+    }
 #define __overlay_func(name, overlay) __noinline __attribute__((section("." __STRING(overlay) "." __STRING(name)))) name##_internal
+
+// Alternative usage:
+// __define_overlay_func(my_function, my_overlay, (uint arg1, ...), (arg1, ...), void) {
+//     ...
+// }
+#define __define_overlay_func(name, overlay, args, args_notype, ret) \
+ret __overlay_func(name, overlay) args; \
+static inline ret name args { \
+    if (overlay_load(__load_start_overlay_##overlay, __load_stop_overlay_##overlay, overlay##_hash)) { \
+        name##_internal args_notype; \
+    } else { \
+        printf("overlay failed to load\n"); \
+    } \
+} \
+ret name##_internal args 
 
 extern uint8_t __overlays_start[];
 extern uint8_t __overlays_end[];

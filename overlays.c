@@ -6,8 +6,7 @@
 #include "hardware/pwm.h"
 
 
-#define blink_one(...) __call_overlay_func(blink_one, blinking, __VA_ARGS__)
-void __overlay_func(blink_one, blinking)(uint32_t ms) {
+__define_overlay_func(blink_one, blinking, (uint32_t ms), (ms), void) {
     gpio_put(PICO_DEFAULT_LED_PIN, true);
     sleep_ms(ms);
     gpio_put(PICO_DEFAULT_LED_PIN, false);
