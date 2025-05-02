@@ -42,29 +42,34 @@ function(link_overlay_library TARGET NAME)
         list(REMOVE_DUPLICATES COMPILE_DEFINITIONS)
         target_compile_definitions(${NEW_NAME} PUBLIC ${COMPILE_DEFINITIONS})
         target_compile_definitions(${NEW_NAME} INTERFACE ${COMPILE_DEFINITIONS})
+        message(STATUS "Done compile definitions")
 
         # Compile options
         gather_vars(COMPILE_OPTIONS INTERFACE_COMPILE_OPTIONS _touched_cf ${NEW_NAME})
         list(REMOVE_DUPLICATES COMPILE_OPTIONS)
         target_compile_options(${NEW_NAME} PUBLIC ${COMPILE_OPTIONS})
         target_compile_options(${NEW_NAME} INTERFACE ${COMPILE_OPTIONS})
+        message(STATUS "Done compile options")
 
         # Include dirs
         gather_vars(INCLUDE_DIRECTORIES INTERFACE_INCLUDE_DIRECTORIES _touched_id ${NEW_NAME})
         list(REMOVE_DUPLICATES INCLUDE_DIRECTORIES)
         target_include_directories(${NEW_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
         target_include_directories(${NEW_NAME} INTERFACE ${INCLUDE_DIRECTORIES})
+        message(STATUS "Done include dirs")
 
         # Link options
         gather_vars(LINK_FLAGS INTERFACE_LINK_OPTIONS _touched_l ${NEW_NAME})
         target_link_options(${NEW_NAME} PUBLIC ${LINK_FLAGS})
         target_link_options(${NEW_NAME} INTERFACE ${LINK_FLAGS})
+        message(STATUS "Done link options")
 
         # Target properties were scoped to the target being built, lets scope them to static library
         string(REPLACE "$<TARGET_PROPERTY:" "$<TARGET_PROPERTY:${NEW_NAME}," COMPILE_DEFINITIONS "${COMPILE_DEFINITIONS}")
         string(REPLACE "$<TARGET_PROPERTY:" "$<TARGET_PROPERTY:${NEW_NAME}," COMPILE_OPTIONS "${COMPILE_OPTIONS}")
         string(REPLACE "$<TARGET_PROPERTY:" "$<TARGET_PROPERTY:${NEW_NAME}," INCLUDE_DIRECTORIES "${INCLUDE_DIRECTORIES}")
         string(REPLACE "$<TARGET_PROPERTY:" "$<TARGET_PROPERTY:${NEW_NAME}," LINK_FLAGS "${LINK_FLAGS}")
+        message(STATUS "Done target properties")
 
         # The only way to get CMake to do some generator expression evaluation is to generate a file
         file(GENERATE OUTPUT ${NEW_NAME}_build_info.txt CONTENT
@@ -73,6 +78,7 @@ Compile options    : ${COMPILE_OPTIONS}
 Include dirs       : ${INCLUDE_DIRECTORIES}
 Link flags         : ${LINK_FLAGS}"
         )
+        message(STATUS "Done build info")
 
         # Clearing all interface properties, else they will be used instead of the static library
         set_property(TARGET ${NEW_NAME} PROPERTY INTERFACE_LINK_LIBRARIES "")
@@ -98,10 +104,10 @@ endfunction()
 
 function(postprocess_overlays TARGET)
     get_property(overlays TARGET ${TARGET} PROPERTY OVERLAYS)
-    find_package (Python3 REQUIRED COMPONENTS Interpreter)
-    add_custom_command(TARGET ${TARGET} POST_BUILD
-        COMMAND ${Python3_EXECUTABLE} ${PICO_OVERLAY_DIR}/process_hashes.py $<TARGET_FILE:${TARGET}>
-        VERBATIM)
+
+    pico_init_picotool()
+    get_property(PICOTOOL_PATH TARGET picotool PROPERTY IMPORTED_LOCATION_RELEASE)
+    message(STATUS "PICOTOOL_PATH: ${PICOTOOL_PATH}")
 
     # create all_overlays.h
     set(CMAKE_CONFIGURABLE_FILE_CONTENT "#ifndef ALL_OVERLAYS_H\n#define ALL_OVERLAYS_H\n")
@@ -133,4 +139,30 @@ function(postprocess_overlays TARGET)
         @ONLY
     )
     unset(CMAKE_CONFIGURABLE_FILE_CONTENT)
+
+    set(OVERLAY_DUMP_ARGS "")
+    foreach(overlay IN LISTS overlays)
+        list(APPEND OVERLAY_DUMP_ARGS "--dump-section")
+        list(APPEND OVERLAY_DUMP_ARGS ".overlay_${overlay}=${CMAKE_CURRENT_BINARY_DIR}/${overlay}.bin")
+    endforeach()
+
+    # dump the overlays as .bin files
+    add_custom_command(TARGET ${TARGET} POST_BUILD COMMAND
+        ${CMAKE_OBJCOPY}
+        ARGS -Obinary ${OVERLAY_DUMP_ARGS} $<TARGET_FILE:${TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/tmp
+        COMMAND_EXPAND_LISTS VERBATIM
+    )
+
+    # seal the binary to add the load_map, else picotool config will fail
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND picotool seal --quiet $<TARGET_FILE:${TARGET}> $<TARGET_FILE:${TARGET}>
+            VERBATIM
+    )
+
+    # run script to hash all overlays and write the hashes in the binary
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} 
+        ARGS -D target_file=$<TARGET_FILE:${TARGET}> -D picotool_path=${PICOTOOL_PATH} -P ${PICO_OVERLAY_DIR}/process_hashes.cmake -- ${overlays}
+        COMMAND_EXPAND_LISTS VERBATIM
+    )
 endfunction()

@@ -19,7 +19,7 @@ bool overlay_load(uint8_t* start, uint8_t* stop, char* hash) {
     pico_sha256_state_t state;
     int rc = pico_sha256_start_blocking(&state, SHA256_BIG_ENDIAN, true); // using some DMA system resources
     hard_assert(rc == PICO_OK);
-    pico_sha256_update_blocking(&state, (const uint8_t*)__overlays_start, __overlays_end - __overlays_start);
+    pico_sha256_update_blocking(&state, (const uint8_t*)__overlays_start, stop - start);
 
     // Get the result of the sha256 calculation
     sha256_result_t result;
