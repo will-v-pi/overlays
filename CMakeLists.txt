@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD pico2_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -50,6 +50,7 @@ pico_enable_stdio_usb(overlays 0)
 target_link_libraries(overlays
         pico_stdlib
         pico_overlay
+        pico_rand   # excplicitly pull this into the main binary, so all overlays can use it
         hardware_pwm
         hardware_irq)
 
@@ -65,6 +66,13 @@ pico_package_uf2_output(overlays 0x10000000)
 
 add_overlay(overlays blinking)
 add_overlay(overlays fading)
+
+target_include_directories(pico_mbedtls INTERFACE ${CMAKE_CURRENT_LIST_DIR})
+link_overlay_library(overlays pico_mbedtls)
+target_compile_definitions(overlays PRIVATE LIB_PICO_MBEDTLS=1)
+
+target_include_directories(pico_cyw43_arch_lwip_poll INTERFACE ${CMAKE_CURRENT_LIST_DIR})
+link_overlay_library(overlays pico_cyw43_arch_lwip_poll)
 
 postprocess_overlays(overlays)
 

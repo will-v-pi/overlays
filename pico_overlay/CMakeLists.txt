@@ -11,11 +11,88 @@ pico_mirrored_target_link_libraries(pico_overlay INTERFACE
         pico_binary_info
 )
 
-# needed by function below
+# needed by functions below
 set(PICO_OVERLAY_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
 
 function(add_overlay TARGET NAME)
     set_property(TARGET ${TARGET} PROPERTY OVERLAYS ${NAME} APPEND)
+endfunction()
+
+
+function(link_overlay_library TARGET NAME)
+    include(${PICO_OVERLAY_DIR}/gather_vars.cmake)
+
+    if (ARGC GREATER 2)
+        message(STATUS "Linking overlay library ${NAME} with ${ARGV2}")
+        set(OVERLAY_NAME ${ARGV2})
+    else()
+        set(OVERLAY_NAME ${NAME})
+    endif()
+
+    get_property(target_type TARGET ${NAME} PROPERTY TYPE)
+    if ("INTERFACE_LIBRARY" STREQUAL "${target_type}")
+        set(NEW_NAME ${NAME}_static)
+        message(STATUS "Creating static library for overlay from interface library ${NAME}")
+        # Create a static library from the interface library
+        add_library(${NEW_NAME} STATIC ${PICO_OVERLAY_DIR}/static_dummy.c)
+        target_link_libraries(${NEW_NAME} PUBLIC ${NAME})
+
+        # Compile definitions
+        gather_vars(COMPILE_DEFINITIONS INTERFACE_COMPILE_DEFINITIONS _touched_cd ${NEW_NAME})
+        list(REMOVE_DUPLICATES COMPILE_DEFINITIONS)
+        target_compile_definitions(${NEW_NAME} PUBLIC ${COMPILE_DEFINITIONS})
+        target_compile_definitions(${NEW_NAME} INTERFACE ${COMPILE_DEFINITIONS})
+
+        # Compile options
+        gather_vars(COMPILE_OPTIONS INTERFACE_COMPILE_OPTIONS _touched_cf ${NEW_NAME})
+        list(REMOVE_DUPLICATES COMPILE_OPTIONS)
+        target_compile_options(${NEW_NAME} PUBLIC ${COMPILE_OPTIONS})
+        target_compile_options(${NEW_NAME} INTERFACE ${COMPILE_OPTIONS})
+
+        # Include dirs
+        gather_vars(INCLUDE_DIRECTORIES INTERFACE_INCLUDE_DIRECTORIES _touched_id ${NEW_NAME})
+        list(REMOVE_DUPLICATES INCLUDE_DIRECTORIES)
+        target_include_directories(${NEW_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
+        target_include_directories(${NEW_NAME} INTERFACE ${INCLUDE_DIRECTORIES})
+
+        # Link options
+        gather_vars(LINK_FLAGS INTERFACE_LINK_OPTIONS _touched_l ${NEW_NAME})
+        target_link_options(${NEW_NAME} PUBLIC ${LINK_FLAGS})
+        target_link_options(${NEW_NAME} INTERFACE ${LINK_FLAGS})
+
+        # Target properties were scoped to the target being built, lets scope them to static library
+        string(REPLACE "$<TARGET_PROPERTY:" "$<TARGET_PROPERTY:${NEW_NAME}," COMPILE_DEFINITIONS "${COMPILE_DEFINITIONS}")
+        string(REPLACE "$<TARGET_PROPERTY:" "$<TARGET_PROPERTY:${NEW_NAME}," COMPILE_OPTIONS "${COMPILE_OPTIONS}")
+        string(REPLACE "$<TARGET_PROPERTY:" "$<TARGET_PROPERTY:${NEW_NAME}," INCLUDE_DIRECTORIES "${INCLUDE_DIRECTORIES}")
+        string(REPLACE "$<TARGET_PROPERTY:" "$<TARGET_PROPERTY:${NEW_NAME}," LINK_FLAGS "${LINK_FLAGS}")
+
+        # The only way to get CMake to do some generator expression evaluation is to generate a file
+        file(GENERATE OUTPUT ${NEW_NAME}_build_info.txt CONTENT
+"Compile definitions: ${COMPILE_DEFINITIONS}
+Compile options    : ${COMPILE_OPTIONS}
+Include dirs       : ${INCLUDE_DIRECTORIES}
+Link flags         : ${LINK_FLAGS}"
+        )
+
+        # Clearing all interface properties, else they will be used instead of the static library
+        set_property(TARGET ${NEW_NAME} PROPERTY INTERFACE_LINK_LIBRARIES "")
+
+    else()
+        message(STATUS "Using non-interface library ${NAME} directly for overlay")
+        set(NEW_NAME ${NAME})
+    endif()
+
+    # Move .text and .rodata sections into the overlay section
+    add_custom_command(TARGET ${NEW_NAME} POST_BUILD COMMAND
+        ${CMAKE_OBJCOPY} --rename-section .text=.${OVERLAY_NAME}_text --rename-section .rodata=.${OVERLAY_NAME}_rodata $<TARGET_FILE:${NEW_NAME}> $<TARGET_FILE:${NEW_NAME}>
+        VERBATIM)
+
+    target_link_libraries(${TARGET} ${NEW_NAME})
+
+    get_property(overlays TARGET ${TARGET} PROPERTY OVERLAYS)
+    if (NOT ${OVERLAY_NAME} IN_LIST overlays)
+        set_property(TARGET ${TARGET} PROPERTY OVERLAYS ${OVERLAY_NAME} APPEND)
+    endif()
 endfunction()
 
 
