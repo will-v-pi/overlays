@@ -14,12 +14,12 @@ pico_mirrored_target_link_libraries(pico_overlay INTERFACE
 # needed by functions below
 set(PICO_OVERLAY_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
 
-function(add_overlay TARGET NAME)
+function(pico_add_overlay TARGET NAME)
     set_property(TARGET ${TARGET} PROPERTY OVERLAYS ${NAME} APPEND)
 endfunction()
 
 
-function(link_overlay_library TARGET NAME)
+function(pico_link_overlay_library TARGET NAME)
     include(${PICO_OVERLAY_DIR}/gather_vars.cmake)
 
     if (ARGC GREATER 2)
@@ -102,12 +102,12 @@ Link flags         : ${LINK_FLAGS}"
 endfunction()
 
 
-function(postprocess_overlays TARGET)
+function(pico_postprocess_overlays TARGET)
     get_property(overlays TARGET ${TARGET} PROPERTY OVERLAYS)
 
     pico_init_picotool()
-    get_property(PICOTOOL_PATH TARGET picotool PROPERTY IMPORTED_LOCATION_RELEASE)
-    message(STATUS "PICOTOOL_PATH: ${PICOTOOL_PATH}")
+    get_property(PICOTOOL_LOCATION TARGET picotool PROPERTY LOCATION)
+    message(STATUS "PICOTOOL_LOCATION: ${PICOTOOL_LOCATION}")
 
     # create all_overlays.h
     set(CMAKE_CONFIGURABLE_FILE_CONTENT "#ifndef ALL_OVERLAYS_H\n#define ALL_OVERLAYS_H\n")
@@ -162,7 +162,7 @@ function(postprocess_overlays TARGET)
     # run script to hash all overlays and write the hashes in the binary
     add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND ${CMAKE_COMMAND} 
-        ARGS -D target_file=$<TARGET_FILE:${TARGET}> -D picotool_path=${PICOTOOL_PATH} -P ${PICO_OVERLAY_DIR}/process_hashes.cmake -- ${overlays}
+        ARGS -D target_file=$<TARGET_FILE:${TARGET}> -D picotool_path=${PICOTOOL_LOCATION} -P ${PICO_OVERLAY_DIR}/process_hashes.cmake -- ${overlays}
         COMMAND_EXPAND_LISTS VERBATIM
     )
 endfunction()

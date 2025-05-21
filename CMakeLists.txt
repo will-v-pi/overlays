@@ -64,16 +64,16 @@ pico_set_linker_script(overlays ${CMAKE_CURRENT_LIST_DIR}/memmap_overlays.ld)
 pico_hash_binary(overlays)
 pico_package_uf2_output(overlays 0x10000000)
 
-add_overlay(overlays blinking)
-add_overlay(overlays fading)
+pico_add_overlay(overlays blinking)
+pico_add_overlay(overlays fading)
 
 target_include_directories(pico_mbedtls INTERFACE ${CMAKE_CURRENT_LIST_DIR})
-link_overlay_library(overlays pico_mbedtls)
+pico_link_overlay_library(overlays pico_mbedtls)
 target_compile_definitions(overlays PRIVATE LIB_PICO_MBEDTLS=1)
 
 target_include_directories(pico_cyw43_arch_lwip_poll INTERFACE ${CMAKE_CURRENT_LIST_DIR})
-link_overlay_library(overlays pico_cyw43_arch_lwip_poll)
+pico_link_overlay_library(overlays pico_cyw43_arch_lwip_poll)
 
-postprocess_overlays(overlays)
+pico_postprocess_overlays(overlays)
 
 pico_add_extra_outputs(overlays)
